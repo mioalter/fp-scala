@@ -2,6 +2,11 @@ import com.twitter.scalding._
 import com.twitter.algebird.Aggregator.size
 import com.twitter.scalding.mathematics.Matrix._
 
+/**
+ * A reworking, for personal edification, of 
+ * https://github.com/scalding-io/ProgrammingWithScalding/blob/master/chapter9/src/main/scala/BookSimilarity.scala
+ */
+
 val input = TextLine("examples/input/books.txt")
 
 val rawCorpus : TypedPipe[(String,String)] = TypedPipe.from(input).map(x => x.split("\\t")).map(y => (y(0),y(1)))
