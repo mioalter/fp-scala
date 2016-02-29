@@ -16,16 +16,25 @@ val corpus = rawCorpus.flatMap(x => preprocessPlus(x._1, x._2))
 /**
  * We parse the document text into words with preprocess.
  * We then want to explode each (book : String, raw_text : String) 
- * row into a list of (book, word : String) rows and flatten these all into a
- * single table/typedpipe. In Scala, this is flatmap; in Hive it is a Lateral View Explode.
- * There is a hack: preprocess : String => List[String]
- * but we want to feed it a (String, String) and
- * have the first component just come along for the ride.
- * The general situation is, we have a function A => F[B],
+ * row into a list of (book, word : String) rows, one for each word in the book, and flatten these all into a
+ * single table/typedpipe.
+ * In Scala, this is flatmap; in Hive it is a Lateral View Explode.
+ * There is a hack: preprocess : (raw_text : String) => List[(word : String)]
+ * but we want to feed it a (book : String, raw_text : String) and get a List[(book : String, word : String)]
+ * where the first component just comes along for the ride.
+ * We do this here with preprocessPlus.
+ * Read the rest of this comment for a gross digression on FP.
+ * The general situation is, we have a function f : A => F[B],
  * and we want a function (C,A) => F[(C,B)]
  * (we want a list of pairs at the end, not a pair of lists hence F of a tuple).
- * To do this, we REVIEW IN HASKELL
- *
+ * To promote f to a function (C,A) => F[(C,B)] we need for F[_] to be an applicative.
+ * In this case, 
+ *   - F has a function pure : C => F[C],
+ *   - we combine f and pure to make fPlus : (C,A) => (F[C],F[B])
+ *   - we then use F's ap : (F[A => B], F[A]) => F[B] to  define a map flip : (F[C],F[B]) => F[(C,B)]
+ *   - we compose these to get what we want
+ * Here, we need that List is a monad to flatMap, but we only need that it is an applicative
+ * to promote preprocess to preprocessPlus.
  */
 
 def preprocess(rawText : String) : List[String] = {
