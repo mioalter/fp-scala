@@ -159,21 +159,22 @@ class TFIDF_Job(args : Args) extends Job(args) {
   
   val normedMatrix = corpusMatrix.rowL2Normalize
   val similaritiesMatrix = normedMatrix * normedMatrix.transpose
-  val similaritiesTP : TypedPipe[(String, String, Double)] = TypedPipe.from[(String, String, Double)](similaritiesMatrix.pipe, ('row, 'col, 'val)) // ('row, 'col, 'val) are the default names when you convert a matrix to a pipe
+  val similaritiesTP : TypedPipe[(String, String, Double)] = TypedPipe.from[(String, String, Double)](similaritiesMatrix.pipe, ('row, 'col, 'val)) 
+  // ('row, 'col, 'val) are the default names when you convert a matrix to a pipe
   
   val similarities = (
     similaritiesTP
       .filter(x => x._1 < x._2) // the matrix is symmetric, take the upper triangle (ignoring the diagonal)
-      .groupAll //send everything to one reducer to properly sort
-      .sortBy(_._3) // sort by similarity
-      .reverse // decreasing
+      .groupAll                 // send everything to one reducer to properly sort
+      .sortBy(_._3)             // sort by similarity, decreasing
+      .reverse
   )
 
   similarities.values.write(TypedTsv[(String, String, Double)](output))
   
   /**
    * To force everything to go to one reducer, groupAll makes everything a value with the same key: Unit
-   * This means that similarities : TypedPipe[(Unit, (String, String, Double))]
+   * This means that similarities : SortedGrouped[Unit,(String, String, Double)]
    * so to get the stuff we want and write it out, we want similarities.values.
    */ 
 }
