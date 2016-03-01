@@ -170,4 +170,10 @@ class TFIDF_Job(args : Args) extends Job(args) {
   )
 
   similarities.values.write(TypedTsv[(String, String, Double)](output))
+  
+  /**
+   * To force everything to go to one reducer, groupAll makes everything a value with the same key: Unit
+   * This means that similarities : TypedPipe[(Unit, (String, String, Double))]
+   * so to get the stuff we want and write it out, we want similarities.values.
+   */ 
 }
