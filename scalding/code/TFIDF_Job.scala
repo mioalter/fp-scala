@@ -26,19 +26,7 @@ class TFIDF_Job(args : Args) extends Job(args) {
    * but we want to feed it a (book : String, raw_text : String) and get a List[(book : String, word : String)]
    * where the first component just comes along for the ride.
    * We do this here with preprocessPlus.
-   * 
-   * And now, a gross digression on FP that can be freely ignored:
-   * The general situation is, we have a function f : A => F[B],
-   * and we want a function (C,A) => F[(C,B)]
-   * (we want a list of pairs at the end, not a pair of lists hence F of a tuple).
-   * To promote f to a function (C,A) => F[(C,B)] we need for F[_] to be an applicative.
-   * In this case, 
-   *   - we have a function pure : C => F[C],
-   *   - we combine f and pure to make fPlus : (C,A) => (F[C],F[B])
-   *   - we then use F's ap : (F[A => B], F[A]) => F[B] to  define a map flip : (F[C],F[B]) => F[(C,B)]
-   *   - we compose these to get what we want
-   * Here, we need that List is a monad to flatMap, but we only need that it is an applicative
-   * to promote preprocess to preprocessPlus.
+   * See comment at the end for an explanation
    */
   
   def preprocess(rawText : String) : List[String] = {
@@ -166,8 +154,8 @@ class TFIDF_Job(args : Args) extends Job(args) {
     similaritiesTP
       .filter(x => x._1 < x._2) // the matrix is symmetric, take the upper triangle (ignoring the diagonal)
       .groupAll                 // send everything to one reducer to properly sort
-      .sortBy(_._3)             // sort by similarity, decreasing
-      .reverse
+      .sortBy(_._3)             // sort by similarity...
+      .reverse                  // ...decreasing
   )
 
   similarities.values.write(TypedTsv[(String, String, Double)](output))
@@ -176,5 +164,19 @@ class TFIDF_Job(args : Args) extends Job(args) {
    * To force everything to go to one reducer, groupAll makes everything a value with the same key: Unit
    * This means that similarities : SortedGrouped[Unit,(String, String, Double)]
    * so to get the stuff we want and write it out, we want similarities.values.
-   */ 
+   *
+   * Now, the comment about preprocess vs. preprocessPlus:
+   * And now, a gross digression on FP that can be freely ignored:
+   * The general situation is, we have a function f : A => F[B],
+   * and we want a function (C,A) => F[(C,B)]
+   * (we want a list of pairs at the end, not a pair of lists hence F of a tuple).
+   * To promote f to a function (C,A) => F[(C,B)] we need for F[_] to be an applicative.
+   * In this case, 
+   *   - we have a function pure : C => F[C],
+   *   - we combine f and pure to make fPlus : (C,A) => (F[C],F[B])
+   *   - we then use F's ap : (F[A => B], F[A]) => F[B] to  define a map flip : (F[C],F[B]) => F[(C,B)]
+   *   - we compose these to get what we want
+   * Here, we need that List is a monad to flatMap, but we only need that it is an applicative
+   * to promote preprocess to preprocessPlus.  
+   */
 }
