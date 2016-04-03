@@ -19,7 +19,8 @@ class TFIDF_Job(args : Args) extends Job(args) {
   /**
    * We parse the document text into words with preprocess.
    * We then want to explode each (book : String, raw_text : String) 
-   * row into a list of (book, word : String) rows, one for each word in the book, and flatten these all into a
+   * row into a list of (book : String, word : String) rows, 
+   * one for each word in the book, and flatten these all into a
    * single table/typedpipe.
    * In Scala, this is flatmap; in Hive it is a Lateral View Explode.
    * There is a hack: preprocess : (raw_text : String) => List[(word : String)]
@@ -39,9 +40,11 @@ class TFIDF_Job(args : Args) extends Job(args) {
   }
   
   def preprocessPlus(book : String, rawText : String) : List[(String, String)] = {
-    for {
-      a <- preprocess(rawText)
-    } yield(book, a)
+    lazy val words = preprocess(rawText)
+    words.map{case word => (book, word)}
+    //for {
+    //  a <- preprocess(rawText)
+    //} yield(book, a)
   }
   
   /**
@@ -165,8 +168,8 @@ class TFIDF_Job(args : Args) extends Job(args) {
    * This means that similarities : SortedGrouped[Unit,(String, String, Double)]
    * so to get the stuff we want and write it out, we want similarities.values.
    *
-   * Now, the comment about preprocess vs. preprocessPlus:
-   * And now, a gross digression on FP that can be freely ignored:
+   * Now, the comment about preprocess vs. preprocessPlus,
+   * a gross digression on FP that can be freely ignored:
    * The general situation is, we have a function f : A => F[B],
    * and we want a function (C,A) => F[(C,B)]
    * (we want a list of pairs at the end, not a pair of lists hence F of a tuple).
