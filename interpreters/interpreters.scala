@@ -52,7 +52,7 @@ object TypesAndInstances {
         // then we F.map it over s = F[y]
 
       }
-    def pure[A](a : A) : Free[F,A] = Return(a)
+    //def pure[A](a : A) : Free[F,A] = Return(a)
     def bind[B](f : A => Free[F,B])(implicit ev : Functor[F]) : Free[F,B] =
       this match {
         case Return(a) => f(a)
@@ -69,6 +69,8 @@ object TypesAndInstances {
 
 
   implicit object TreeMonad extends Monad[Tree] {
+    // This way of making Tree a monad comes from 
+    // my Haskell meetup talk
     def map[A,B](ta : Tree[A])(f : A => B) : Tree[B] =
       ta match {
         case Leaf(x) => Leaf(f(x))
