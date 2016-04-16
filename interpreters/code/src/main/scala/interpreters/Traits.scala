@@ -15,11 +15,12 @@ object UsefulTraits {
 
   trait Monad[M[_]] extends Functor[M] {
     def pure[A](a : A) : M[A]
-    def bind[A,B](ma : M[A])(f : A => M[B]) : M[B]
+    def bind[A,B](ma : =>M[A])(f : A => M[B]) : M[B]
   }
 
   trait ~>[F[_],G[_]] {
-    def apply[A](fa : F[A]) : G[A]
+    def apply[A](fa : =>F[A]) : G[A]
   }
+
 
 }

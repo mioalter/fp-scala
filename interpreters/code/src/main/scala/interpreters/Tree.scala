@@ -4,6 +4,7 @@ object Tree {
 
   import language.higherKinds
   import UsefulTraits._
+  import Implicits._
 
   sealed trait Tree[A]
   final case class Leaf[A](value : A) extends Tree[A]
@@ -19,7 +20,7 @@ object Tree {
         case Node(l,r) => Node(map(l)(f), map(r)(f))
       }
     def pure[A](a : A) : Tree[A] = Leaf(a)
-    def bind[A,B](ta : Tree[A])(f : A => Tree[B]) : Tree[B] =
+    def bind[A,B](ta : =>Tree[A])(f : A => Tree[B]) : Tree[B] =
       ta match {
         case Leaf(x) => f(x)
         case Node(l,r) => Node(bind(l)(f), bind(r)(f))
