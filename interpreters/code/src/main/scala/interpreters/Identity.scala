@@ -16,8 +16,15 @@ object Identity {
     def bind[A,B](ida : =>Id[A])(f : A => Id[B]) : Id[B] = f(ida)
   }
 
-  def add[A](x : =>A, y : =>A)(implicit ev : Monoid[A] = null) : A = {
+  def add[A](x : A, y : A)(implicit ev : Monoid[A] = null) : A = {
     if (ev != null) {ev.plus(x,y)}
     else x
   }
+
+  // def treeSum[A](t : Tree[A])(implicit ev : Monoid[A] = null) : A =
+  //   t match {
+  //     case Leaf(x) => x
+  //     case Node(l,r) if (ev != null) => treeSum(l) + treeSum(r)
+  //     case Node(l,r) => treeSum(l)
+  //   }  
 }

@@ -4,7 +4,6 @@ object Tree {
 
   import language.higherKinds
   import UsefulTraits._
-  import Implicits._
 
   sealed trait Tree[A]
   final case class Leaf[A](value : A) extends Tree[A]

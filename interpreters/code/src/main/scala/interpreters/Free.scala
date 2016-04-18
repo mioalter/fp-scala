@@ -4,6 +4,7 @@ object Free {
 
   import language.higherKinds
   import UsefulTraits._
+  import Implicits._
   
   sealed trait Free[F[_],A]{
     

@@ -19,7 +19,7 @@ object UsefulTraits {
   }
 
   trait ~>[F[_],G[_]] {
-    def apply[A](fa : =>F[A]) : G[A]
+    def apply[A](fa : F[A]) : G[A]
   }
 
 
