@@ -17,9 +17,11 @@ object Run{
   val returnExp : IntExp = Return(1)
   val constExp : IntExp = Suspend(Const(Return(2)))
   val addExp : IntExp = Suspend(Add(Return(3),Return(4)))
+
+  val aei = FExpInterpreter(addExp)
   
-  val adde : Exp[Free[Exp,Int]] = Add(Return(3),Return(4))
-  val addeInt = EFree2Id(adde)
+  // val adde : Exp[Free[Exp,Int]] = Add(Return(3),Return(4))
+  // val addeInt = EFree2Id(adde)
   //val addExp2Id = addExp.foldMap[Id](Exp2Id) 
 
   val moreAdd = addExp.bind(g)

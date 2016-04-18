@@ -17,22 +17,59 @@ object Interpreters {
   type EFree[A] = Exp[Free[Exp,A]]
   type FExp[A] = Free[Exp,A]
 
-  val EFree2Id : (EFree ~> Id) = new (EFree ~> Id) {
-    def apply[A](efree : EFree[A]) : Id[A] = 
-      efree match {
-        case Const(x) => Free2Id(x)
-        case Add(x,y) => add[A](Free2Id(x), Free2Id(y))
-      }
-  }
-
-  val Free2Id : (FExp ~> Id) = new (FExp ~> Id) {
-    def apply[A](fexp : FExp[A]) : Id[A] =
+  val FExp2Id : (FExp ~> Id) = new (FExp ~> Id) {
+    def apply[A](fexp : FExp[A]) : Id[A] = 
       fexp match {
         case Return(x) => x
-        case Suspend(s) => EFree2Id(s)
-
+        case Suspend(s) => 
+          s match {
+            case Const(x) => FExp2Id(x)
+            case Add(x,y) => add(FExp2Id(x), FExp2Id(y))
+          }
       }
-  }
+  } // Doesn't work
+
+  def FExpInterpreter(fexp : FExp[Int]) : Int =
+    fexp match {
+      case Return(x) => x
+      case Suspend(s) => 
+        s match {
+          case Const(x) => FExpInterpreter(x)
+          case Add(x,y) => FExpInterpreter(x) + FExpInterpreter(y)
+        }
+    } // Works
+    // So we can by-hand write a recursive function to interpret
+    // There's just weird stuff going on with the add function
+    // and maybe with where the monoid instance of Int is in scope
+
+  // val Exp2Id : (Exp ~> Id) = new (Exp ~> Id) {
+  //   def apply[A](exp : Exp[A]) : Id[A] = 
+  //     exp match {
+  //       case Const(x) if (x : FExp[A]) => x.foldMap(Exp2Id)
+  //       case Const(x) => x
+  //       case Add(x,y) if ((x : FExp[A]) && (y : FExp[A])) => add(x.foldMap(Exp2Id), y.foldMap(Exp2Id))
+  //       case Add(x,y) => add(x,y)
+  //     }
+  // }
+
+  // val EFree2Id : (EFree ~> Id) = new (EFree ~> Id) {
+  //   import Implicits._
+  //   def apply[A](efree : EFree[A]) : Id[A] = 
+  //     efree match {
+  //       case Const(x) => Free2Id(x)
+  //       case Add(x,y) => add[A](Free2Id(x), Free2Id(y))
+  //     }
+  // }
+
+  // val Free2Id : (FExp ~> Id) = new (FExp ~> Id) {
+  //   import Implicits._
+  //   def apply[A](fexp : FExp[A]) : Id[A] =
+  //     fexp match {
+  //       case Return(x) => x
+  //       case Suspend(s) => EFree2Id(s)
+
+  //     }
+  // }
 
 
   val Exp2Tree = new (Exp ~> Tree) {
@@ -50,11 +87,6 @@ object Interpreters {
         case Node(l,r) =>  add[A](Tree2Id(l),Tree2Id(r))
       }
   }
-  // val Tree2Id = new (Tree ~> Id) {    
-  //   def apply[A](t : Tree[A]) : Id[A] = treeSum(t)
-  // }
-
-  // val Exp2Id = new (Exp ~> Id) {
-  //   def apply[A](exp : Exp[A]) : Id[A] =
-  // }
+  // Even Tree2Id doesn't work so EFree and Free obviously won't
+  // something weird going on.
 }
