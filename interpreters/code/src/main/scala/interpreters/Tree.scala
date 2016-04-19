@@ -18,7 +18,9 @@ object Tree {
         case Leaf(x) => Leaf(f(x))
         case Node(l,r) => Node(map(l)(f), map(r)(f))
       }
+
     def pure[A](a : A) : Tree[A] = Leaf(a)
+    
     def bind[A,B](ta : =>Tree[A])(f : A => Tree[B]) : Tree[B] =
       ta match {
         case Leaf(x) => f(x)

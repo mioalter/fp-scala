@@ -22,5 +22,4 @@ object UsefulTraits {
     def apply[A](fa : F[A]) : G[A]
   }
 
-
 }

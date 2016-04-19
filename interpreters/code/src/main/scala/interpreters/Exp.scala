@@ -4,7 +4,6 @@ object Exp {
 
   import language.higherKinds
   import UsefulTraits._
-  import Implicits._
 
   sealed trait Exp[T]
   final case class Const[T](s : T) extends Exp[T]

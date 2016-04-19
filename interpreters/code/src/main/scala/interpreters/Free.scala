@@ -15,7 +15,6 @@ object Free {
         // s = F[y] for some y : Free[F,A]
         // By our recursive construction, Free[F,A].map(f) knows how to eat y
         // then we F.map it over s = F[y]
-
       }
     
     def bind[B](f : A => Free[F,B])(implicit ev : Functor[F]) : Free[F,B] =
