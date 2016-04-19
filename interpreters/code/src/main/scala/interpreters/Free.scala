@@ -34,4 +34,7 @@ object Free {
   case class Return[F[_],A](a : A) extends Free[F,A]
   case class Suspend[F[_],A](s : F[Free[F,A]]) extends Free[F,A]
 
+  def liftF[F[_],A](fa : F[A])(implicit ev : Functor[F]) : Free[F,A] =
+    Suspend(ev.map(fa)(x => Return(x)))
+
 }
