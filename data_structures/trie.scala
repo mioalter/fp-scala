@@ -28,10 +28,9 @@ object Trie {
         case (Nil, T(Some(x),_)) => Some(x)
         case ((x::xs), T(v,m)) => 
           val nextTrie = m.get(x) // the trie at key x
-          nextTrie match {
-            case Some(t) => t.lookupOption(xs)
-            case None => None
-          }
+          nextTrie.flatMap(_.lookupOption(xs))
+          // Option's flatMap is exactly the thing that lets 
+          // us avoid writing "case Some(t) => t.lookup(xs); case _ => None"
       }
 
     def lookup(word : String) : Option[String] = this.lookupOption(word.toList)
@@ -39,11 +38,12 @@ object Trie {
     private def trieToString(n : Int)(t : Trie) : List[String] =
       t match {
         case T(value, map) => 
-          val valueString = (" " * n) + value.toString + "\n"
+          val valueString = (" " * n) + value.toString + "\n" 
+          // would be nice to make (" " * n) + x.toString + "\n" a generic function
           val mapString = 
             map
             .toList
-            .flatMap{case (char, trie) => List((" " * (n + 1)) + char.toString + "\n") ++ trieToString(n+2)(trie)}
+            .flatMap{case (char, trie) => ((" " * (n + 1)) + char.toString + "\n") :: trieToString(n+2)(trie)}
           valueString :: mapString
       }
 
@@ -73,7 +73,7 @@ object Trie {
   
     def pairsToMap(pairs : List[(String, String)]) : Map[Char, List[(String, String)]] = {
       pairs
-        .map{case (word, whatsleft) => (whatsleft.head, (word, whatsleft.tail))}
+        .map{case (word, remains) => (remains.head, (word, remains.tail))}
         .groupBy(_._1) // group all the tuples whose remains start with the same character
         .mapValues(_.map(_._2)) // project the character out of the values its only in the keys 
         // and the values are just a List[(word, remains)] again
@@ -102,6 +102,7 @@ object Trie {
   }
 
 }
+
 
 import Trie._
 
