@@ -89,9 +89,7 @@ object Trie {
   
       continuePairs match {
         case (x::xs) =>
-          val moreWordsMap = pairsToMap(continuePairs)
-          // : Map[firstLetter, List(wholeWord, whatsLeft)]
-          // : Map[Char, List[(String, String)]]
+          val moreWordsMap = pairsToMap(continuePairs) // Map(firstLetter <- List[(words, remains)])
           T(doneWord, moreWordsMap.mapValues(x => makeTrie(x)))
         case Nil => T(doneWord, Map())
       }  
