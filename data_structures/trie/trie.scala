@@ -105,10 +105,17 @@ object Trie {
 import Trie._
 
 val words = List("yes", "yess", "yaas")
-val t = toTrie(words)
+lazy val t = toTrie(words)
 val yes = t.lookup("yes")
-val no = t.lookup("yeess")
-val notAWord = t.lookup("ya")
+// val no = t.lookup("yeess")
+// val notAWord = t.lookup("ya")
 
 
-
+// val q = """
+// In its simplest instantiation, 
+// a suffix tree is simply a trie of the n suffixes of an n-character string S. 
+// A trie is a tree structure, where each edge represents one character, and the root represents the null string. 
+// Thus, each path from the root represents a string, described by the characters labeling the edges traversed. 
+// Any finite set of words defines a trie, and two words with common prefixes branch off from each other at the first distinguishing character. 
+// Each leaf denotes the end of a string. Figure 12.1 illustrates a simple trie.
+// """
