@@ -1,45 +1,99 @@
 // Implement a Trie
 //
+// References
+// * Purely Functional Data Structures by Okasaki
+// * Algorithm Design Manual by Skiena
+//
 // A trie is a prefix tree
-// 
-// Paths from the root are all prefixes of a string
-// Each node is an Option which indicates if that prefix forms a valid word
-// The edges are labeled with the characters.
+// The nodes are Option[String]s
+// and the branches are labeled with characters
+// The root node is a None,
+// and the unique path from the root to any node spells a word
+// the Option value at the node indicates if that is a word in our original list
+// word or just a prefix of a word (not a legitimate word).
+// We can quickly lookup a query word of length |q| to see if it's in our trie
+// by doing at most |q| character comparisons.
+//
+// We can use a trie to solve the substring problem:
+// given a string S and a pattern q
+// * does q appear in S?
+// * how many times does q appear in S?
+// We do this by making a trie of all the suffixes of S
+// and seeing if q is a prefix of anything in that trie.
+// We similarly compute the number of times q appears in S
+// by seeing, if it is a prefix of any suffixes, of how many.
 
-//import scala.language.higherKinds
+// This is a proof of concept, it not very efficient.
+// If this were a real project, we wouldn't jam everything into one object, either.
+// One big optimization is to collapse long paths of nodes with only one child into a single node
+// Another would be to make this lazy so we don't build more of the trie than we have to.
+// Another fast way to solve the substring problem is to use a suffix array.
 
 object Trie {
 
   sealed trait Trie {
 
-    private def lookupOption(word : Vector[Char]) : Option[String] =
-      (word, this) match {
-        case (Vector(), T(None, _)) => None
-        case (Vector(), T(Some(x),_)) => Some(x)
-        case ((x +: xs), T(v,m)) => m.get(x).flatMap(_.lookupOption(xs))
-        // Option's flatMap is exactly the thing that lets 
-        // us avoid writing "case Some(t) => t.lookup(xs); case _ => None"
-      }
+    def lookup(query : String) : Option[String] = {
 
-    def lookup(word : String) : Option[String] = this.lookupOption(word.toVector)
+      def lookupOption(word : Vector[Char])(trie : Trie) : Option[String] =
+        (word, trie) match {
+          case (Vector(), T(None, _)) => None
+          case (Vector(), T(Some(x),_)) => Some(x)
+          case ((x +: xs), T(v,m)) => m.get(x).flatMap{case t => lookupOption(xs)(t)}
+          // Option's flatMap is exactly the thing that lets 
+          // us avoid writing "case Some(t) => t.lookup(xs); case _ => None"
+        }
 
+      lookupOption(query.toVector)(this)
+    }
 
-    def isSubstring(q : String) : Boolean = {
+    // The substring problem v1
+    def isSubstring(query : String) : Boolean = {
     
-      def subStringHelper(t : Trie)(qList : Vector[Char]) : Boolean =
-        (qList,t) match {
+      def subStringHelper(queryChars : Vector[Char])(trie : Trie) : Boolean =
+        (queryChars, trie) match {
           case (Vector(),_) => true
           case ((x +: xs), T(v,m)) => 
             m.get(x) match {
-              case Some(nextTrie) => subStringHelper(nextTrie)(xs)
+              case Some(nextTrie) => subStringHelper(xs)(nextTrie)
               case _ => false
             }
           } 
     
-      subStringHelper(this)(q.toVector)      
+      subStringHelper(query.toVector)(this)
+      // could also just use t.numSubstring(query) > 0
   
-  }   
+    }
+  
+  // The substring problem v2
+  // Computes the number of times query appears in our trie
+    def numSubstring(query : String) : Int = {
 
+      def numChildren(t : Trie) : Int =
+        t match {
+          case T(None, m) if m.size == 0 => 0
+          case T(Some(x), m) if m.size == 0 => 1
+          case T(None, m) => m.mapValues(numChildren).values.sum
+          case T(Some(x),m) => m.mapValues(numChildren).values.sum + 1
+        }    
+
+      def numSubstringHelper(queryChars : Vector[Char])(trie : Trie) : Int = 
+        (queryChars, trie) match {
+          case (Vector(), _) => numChildren(trie)
+          case (x +: xs, T(v,m)) =>
+            m.get(x) match {
+              case Some(nextTrie) => numSubstringHelper(xs)(nextTrie)
+              case _ => 0
+            }  
+        }
+
+      numSubstringHelper(query.toVector)(this)
+    
+    }   
+
+    // Display a trie Left to Right where 
+    // indentation indicates depth
+    // the default toString is as deeply nested Maps which are impossible to read
     private def trieToString(n : Int)(t : Trie) : Vector[String] =
       t match {
         case T(value, map) => 
@@ -55,9 +109,10 @@ object Trie {
 
     override val toString : String = trieToString(0)(this).foldLeft("")(_ + _)
 
+    // We define a monoid instance for Trie
+    // and use it to define insert
     def insert(word : String) : Trie = 
-      // TrieMonoidInstance.plus(this, toTrie(Vector(word)))
-      TrieMonoidInstance.plus(this, wordToTrie(word))
+      TrieMonoidInstance.plus(this, toTrie(word))
 
   }
 
@@ -66,7 +121,48 @@ object Trie {
   val EmptyTrie = T(None,Map())
 
 
-  def wordToTrie(word : String) : Trie = {
+  // Make a monoid instance for Tries
+  // in terms of which we can define insert
+  // to build tries from lists of words
+  trait Monoid[A] {
+    def zero : A
+    def plus(a : A, b : A) : A  
+  }
+
+  // the key is to be able to combine Maps whose values are a monoid 
+  def addMap[A,B](a : Map[A,B], b : Map[A,B])(implicit ev : Monoid[B]) : Map[A,B] = {
+    lazy val asbs = a.toVector ++ b.toVector // vector of (key,value) pairs
+    lazy val kvs = 
+      asbs
+        .groupBy(_._1) // group by key
+        .mapValues(_.map(_._2)) // project the key out of the values
+        // the values are now : Vector[B]
+    kvs.mapValues(x => x.foldLeft(ev.zero)(ev.plus))
+    // sum the values to get a B
+    // I'm sure there is an existing implementation of this
+    // in Algebird if not the standard library
+    // but I'm on a plane without free internet
+    }
+
+  // We can use addMap to combine the children of two nodes
+  // then recursively use the Monoid instance
+  // to combine the tries at the next level
+  implicit object TrieMonoidInstance extends Monoid[Trie] {
+    def zero : Trie = EmptyTrie
+    def plus(a : Trie, b : Trie) : Trie = 
+      (a,b) match {
+        case (T(None, m), T(None,n)) => T(None, addMap(m, n)(TrieMonoidInstance))
+        case (T(Some(x),m), T(None,n)) => T(Some(x), addMap(m, n)(TrieMonoidInstance))
+        case (T(None, m), T(Some(y), n)) => T(Some(y), addMap(m, n)(TrieMonoidInstance))
+        case (T(Some(x),m), T(Some(y),n)) if x == y => T(Some(x), addMap(m, n)(TrieMonoidInstance))
+        case _ => zero
+
+      }
+
+  }  
+
+
+  def toTrie(word : String) : Trie = {
     
     def vectToTrie(chars : Vector[Char]): Trie = 
       chars match {
@@ -78,92 +174,30 @@ object Trie {
 
   }
 
-  def wordsToTrie(words : Vector[String]) : Trie = 
+  def toTrie(words : Vector[String]) : Trie = 
     words.foldLeft[Trie](EmptyTrie){case (trie, word) => trie.insert(word)}
-
-  // def toTrie(words : Vector[String]) : Trie = {
-  
-  //   val wordPairs = words.map(x => (x,x))
-  
-  //   def pairsToMap(pairs : Vector[(String, String)]) : Map[Char, Vector[(String, String)]] = {
-  //     pairs
-  //       .map{case (word, remains) => (remains.head, (word, remains.tail))}
-  //       .groupBy(_._1) // group all the tuples whose remains start with the same character
-  //       .mapValues(_.map(_._2)) // project the character out of the values its only in the keys 
-  //       // and the values are just a List[(word, remains)] again
-  //   }
-  
-  //   def makeTrie(wordsAndRemains : Vector[(String, String)]) : Trie = {
-  
-  //     val continuePairs = wordsAndRemains.filter(_._2 != "")  
-  //     val doneWord = wordsAndRemains.filter(_._2 == "").map(_._1).headOption
-  //     // if there is more than one element in this list, it means the same word
-  //     // appeared more than once in the input so it's okay to take the first
-  
-  //     continuePairs match {
-  //       case (x +: xs) =>
-  //         val moreWordsMap = pairsToMap(continuePairs) // Map(firstLetter <- List[(words, remains)])
-  //         T(doneWord, moreWordsMap.mapValues(x => makeTrie(x)))
-  //       case Vector() => T(doneWord, Map())
-  //     }  
-  //   }
-  
-  //   makeTrie(wordPairs)
-  
-  // }
-
-// }
-
-// object TrieMonoid {
-
-  // import Trie._
-
-  trait Monoid[A] {
-    def zero : A
-    def plus(a : A, b : A) : A  
-  }
-
-
-  def addMap[A,B](a : Map[A,B], b : Map[A,B])(implicit ev : Monoid[B]) : Map[A,B] = {
-    lazy val as = a.toVector
-    lazy val bs = b.toVector
-    lazy val asbs = as ++ bs // vector of (key,value) pairs
-    lazy val kvs = asbs.groupBy(_._1).mapValues(_.map(_._2))
-    // group by key, project the key out of the values
-    // the values are now : Vector[B]
-    kvs.mapValues(x => x.foldLeft(ev.zero)(ev.plus))
-    // sum the values to get a B
-    // I'm sure there is an existing implementation of this
-    // but I'm on a plane without free internet
-    }
-
-  implicit object TrieMonoidInstance extends Monoid[Trie] {
-    def zero : Trie = T(None, Map())
-    def plus(a : Trie, b : Trie) : Trie = 
-      (a,b) match {
-        case (T(None, m), T(None,n)) => T(None, addMap(m, n)(TrieMonoidInstance))
-        case (T(Some(x),m), T(None,n)) => T(Some(x), addMap(m, n)(TrieMonoidInstance))
-        case (T(None, m), T(Some(y), n)) => T(Some(y), addMap(m, n)(TrieMonoidInstance))
-        case (T(Some(x),m), T(Some(y),n)) if x == y => T(Some(x), addMap(m, n)(TrieMonoidInstance))
-        case _ => zero
-
-      }
-
-  }
 
 }
 
 object Examples {
+
   import Trie._
-  // import TrieMonoid._
-
-  val t1 = wordsToTrie(Vector("yes","yaas","yez")) 
-  val t2 = wordsToTrie(Vector("yest","yeast","yast"))
-
-
-  // val tIns = insert(t1)("yays")
+  
+  def suffixes(s : String) : Vector[String] = {
+    val suffs = for (i <- 0 to (s.length - 1)) yield s.drop(i)
+    suffs.toVector
+  }
+  
+  val t1 = toTrie(Vector("yes","yaas","yez")) 
+  val t2 = toTrie(Vector("yest","yeast","yast"))
+  
+  
   val ts = TrieMonoidInstance.plus(t1,t2)
+  val ye = ts.numSubstring("ye")
 
-  val words = Vector("yes","yaas","yez") ++ Vector("yest","yeast","yast")
-  // val tfold = words.map(wordToTrie).foldLeft(TrieMonoid.TreeMonoidInstance.zero)(TrieMonoid.TreeMonoidInstance.plus)
+  val s = "yaryastyarz"
+  val t = toTrie(suffixes(s))
+  val numYar = t.numSubstring("yar")
+
 }
+
