@@ -69,17 +69,20 @@ object Trie {
   // Computes the number of times query appears in our trie
     def numSubstring(query : String) : Int = {
 
-      def numChildren(t : Trie) : Int =
+      def numPrefixes(t : Trie) : Int =
         t match {
           case T(None, m) if m.size == 0 => 0
           case T(Some(x), m) if m.size == 0 => 1
-          case T(None, m) => m.mapValues(numChildren).values.sum
-          case T(Some(x),m) => m.mapValues(numChildren).values.sum + 1
+          case T(None, m) => m.mapValues(numPrefixes).values.sum
+          case T(Some(x),m) => m.mapValues(numPrefixes).values.sum + 1
+          // if our query string exactly matches a word in our trie
+          // we want to count the exact match and all the words
+          // of which query is a prefix, hence the +1
         }    
 
       def numSubstringHelper(queryChars : Vector[Char])(trie : Trie) : Int = 
         (queryChars, trie) match {
-          case (Vector(), _) => numChildren(trie)
+          case (Vector(), _) => numPrefixes(trie)
           case (x +: xs, T(v,m)) =>
             m.get(x) match {
               case Some(nextTrie) => numSubstringHelper(xs)(nextTrie)
@@ -193,11 +196,11 @@ object Examples {
   
   
   val ts = TrieMonoidInstance.plus(t1,t2)
-  val numYe = ts.numSubstring("ye")
+  val numYe = ts.numSubstring("ye") // 4
 
   val s = "yaryastyarz"
   val t = toTrie(suffixes(s))
-  val numYar = t.numSubstring("yar")
+  val numYar = t.numSubstring("yar") // 2
 
 }
 
