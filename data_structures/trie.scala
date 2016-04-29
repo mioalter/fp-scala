@@ -193,7 +193,7 @@ object Examples {
   
   
   val ts = TrieMonoidInstance.plus(t1,t2)
-  val ye = ts.numSubstring("ye")
+  val numYe = ts.numSubstring("ye")
 
   val s = "yaryastyarz"
   val t = toTrie(suffixes(s))
