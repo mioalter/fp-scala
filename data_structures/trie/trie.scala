@@ -101,21 +101,76 @@ object Trie {
 
 }
 
+object Substring {
+
+  import Trie._
+
+  def makeSuffixes(s : String) : List[String] = {
+    val suffixes = for (i <- 0 to (s.length - 1)) yield s.drop(i)
+    suffixes.toList
+  }
+
+  def makeSuffixTrie(word : String) : Trie = toTrie(makeSuffixes(word))
+
+
+  def isSubstring(t : Trie)(q : String) : Boolean = {
+    
+    def subStringHelper(t : Trie)(qList : List[Char]) : Boolean =
+      (qList,t) match {
+        case (Nil,_) => true
+        case ((x::xs), T(v,m)) => 
+          m.get(x) match {
+            case Some(nt) => subStringHelper(nt)(xs)
+            case _ => false
+          }
+        } 
+    
+    subStringHelper(t)(q.toList)      
+  
+  }
+  
+  def numSubstring(t : Trie)(q : String) : Int = {
+    
+    def numSubstringHelper(t : Trie)(qList : List[Char]) : Int = 
+      (qList, t) match {
+        case (Nil, T(None,m)) => m.keys.size // not correct!
+        // we need to find the total number of leaf nodes below this node!
+        case (Nil, T(Some(x),m)) => m.keys.size + 1
+        case ((x::xs), T(v,m)) =>
+          m.get(x) match {
+            case Some(nt) => numSubstringHelper(nt)(xs)
+            case _ => 0
+          }
+      }
+  
+    numSubstringHelper(t)(q.toList)
+  
+  }    
+}
+
 
 import Trie._
+import Substring._
 
-val words = List("yes", "yess", "yaas")
-lazy val t = toTrie(words)
-val yes = t.lookup("yes")
+// val words = List("yes", "yess", "yaas")
+// lazy val t = toTrie(words)
+// val yes = t.lookup("yes")
 // val no = t.lookup("yeess")
 // val notAWord = t.lookup("ya")
 
 
-// val q = """
-// In its simplest instantiation, 
-// a suffix tree is simply a trie of the n suffixes of an n-character string S. 
-// A trie is a tree structure, where each edge represents one character, and the root represents the null string. 
-// Thus, each path from the root represents a string, described by the characters labeling the edges traversed. 
-// Any finite set of words defines a trie, and two words with common prefixes branch off from each other at the first distinguishing character. 
-// Each leaf denotes the end of a string. Figure 12.1 illustrates a simple trie.
-// """
+val q = """
+In its simplest instantiation, 
+a suffix tree is simply a trie of the n suffixes of an n-character string S. 
+A trie is a tree structure, where each edge represents one character, and the root represents the null string. 
+Thus, each path from the root represents a string, described by the characters labeling the edges traversed. 
+Any finite set of words defines a trie, and two words with common prefixes branch off from each other at the first distinguishing character. 
+Each leaf denotes the end of a string. Figure 12.1 illustrates a simple trie.
+""".toLowerCase
+
+val words = q.split("[^a-zA-Z]").filter(_ != "").toList
+val query = words.foldLeft(""){case (accum, elem) => accum + elem}
+
+val q = "insta"
+val suffs = makeSuffixes(q + q).sorted
+val t = makeSuffixTrie(q+q)
