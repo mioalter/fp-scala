@@ -21,10 +21,10 @@ import scala.collection.immutable.BitSet
 
 case class BloomFilter(numHashFunctions : Int, numBuckets : Int) {
 
-  def hash(s : String, index : Int, width : Int) : Int = {
   // this idea of defining multiple hash functions by
   // starting with s.hashCode and bitwise xor-ing
   // comes from Spiewak  
+  def hash(s : String, index : Int, width : Int) : Int = {
     Math.abs(
       if (index == 0) s.hashCode
       else index ^ hash(s, index - 1, width)
