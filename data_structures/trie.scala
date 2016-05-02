@@ -1,33 +1,35 @@
-// Implement a Trie
-//
-// References
-// * Purely Functional Data Structures by Okasaki
-// * Algorithm Design Manual by Skiena
-//
-// A trie is a prefix tree
-// The nodes are Option[String]s
-// and the branches are labeled with characters
-// The root node is a None,
-// and the unique path from the root to any node spells a word
-// the Option value at the node indicates if that is a word in our original list
-// word or just a prefix of a word (not a legitimate word).
-// We can quickly lookup a query word of length |q| to see if it's in our trie
-// by doing at most |q| character comparisons.
-//
-// We can use a trie to solve the substring problem:
-// given a string S and a pattern q
-// * does q appear in S?
-// * how many times does q appear in S?
-// We do this by making a trie of all the suffixes of S
-// and seeing if q is a prefix of anything in that trie.
-// We similarly compute the number of times q appears in S
-// by seeing, if it is a prefix of any suffixes, of how many.
+/**
+ * Implement a Trie
+ * 
+ * References
+ * - Purely Functional Data Structures by Okasaki
+ * - Algorithm Design Manual by Skiena
+ * 
+ *  A trie is a prefix tree
+ * The nodes are Option[String]s
+ * and the branches are labeled with characters
+ * The root node is a None,
+ * and the unique path from the root to any node spells a word
+ * the Option value at the node indicates if that is a word in our original list
+ * word or just a prefix of a word (not a legitimate word).
+ * We can quickly lookup a query word of length |q| to see if it's in our trie
+ * by doing at most |q| character comparisons.
+ *
+ * We can use a trie to solve the substring problem:
+ * given a string S and a pattern q
+ * - does q appear in S?
+ * - how many times does q appear in S?
+ * We do this by making a trie of all the suffixes of S
+ * and seeing if q is a prefix of anything in that trie.
+ * We similarly compute the number of times q appears in S
+ * by seeing, if it is a prefix of any suffixes, of how many.
 
-// This is a proof of concept, it not very efficient.
-// If this were a real project, we wouldn't jam everything into one object, either.
-// One big optimization is to collapse long paths of nodes with only one child into a single node
-// Another would be to make this lazy so we don't build more of the trie than we have to.
-// Another fast way to solve the substring problem is to use a suffix array.
+ * This is a proof of concept, it not very efficient.
+ * If this were a real project, we wouldn't jam everything into one object, either.
+ * One big optimization is to collapse long paths of nodes with only one child into a single node
+ * Another would be to make this lazy so we don't build more of the trie than we have to.
+ * Another fast way to solve the substring problem is to use a suffix array.
+ */
 
 object Trie {
 
@@ -41,13 +43,15 @@ object Trie {
           case (Vector(), T(Some(x),_)) => Some(x)
           case ((x +: xs), T(v,m)) => m.get(x).flatMap{case t => lookupOption(xs)(t)}
           // Option's flatMap is exactly the thing that lets 
-          // us avoid writing "case Some(t) => t.lookup(xs); case _ => None"
+          // us avoid writing "case Some(t) => lookup(xs)(t); case _ => None"
         }
 
       lookupOption(query.toVector)(this)
     }
 
-    // The substring problem v1
+    /**
+     * The substring problem v1
+     */
     def isSubstring(query : String) : Boolean = {
     
       def subStringHelper(queryChars : Vector[Char])(trie : Trie) : Boolean =
@@ -65,8 +69,10 @@ object Trie {
   
     }
   
-  // The substring problem v2
-  // Computes the number of times query appears in our trie
+    /**
+     * The substring problem v2
+     * Computes the number of times query appears in our trie
+     */
     def numSubstring(query : String) : Int = {
 
       def numPrefixes(t : Trie) : Int =
@@ -94,9 +100,11 @@ object Trie {
     
     }   
 
-    // Display a trie Left to Right where 
-    // indentation indicates depth
-    // the default toString is as deeply nested Maps which are impossible to read
+    /**
+     * Display a trie Left to Right where 
+     * indentation indicates depth
+     * the default toString is as deeply nested Maps which are impossible to read
+     */
     private def trieToString(n : Int)(t : Trie) : Vector[String] =
       t match {
         case T(value, map) => 
@@ -112,8 +120,10 @@ object Trie {
 
     override val toString : String = trieToString(0)(this).foldLeft("")(_ + _)
 
-    // We define a monoid instance for Trie
-    // and use it to define insert
+    /** 
+     * We define a monoid instance for Trie
+     * and use it to define insert
+     */
     def insert(word : String) : Trie = 
       TrieMonoidInstance.plus(this, toTrie(word))
 
@@ -124,15 +134,19 @@ object Trie {
   val EmptyTrie = T(None,Map())
 
 
-  // Make a monoid instance for Tries
-  // in terms of which we can define insert
-  // to build tries from lists of words
+  /** 
+   * Make a monoid instance for Tries
+   * in terms of which we can define insert
+   * to build tries from lists of words
+   */
   trait Monoid[A] {
     def zero : A
     def plus(a : A, b : A) : A  
   }
 
-  // the key is to be able to combine Maps whose values are a monoid 
+  /**
+   * the key is to be able to combine Maps whose values are a monoid 
+   */
   def addMap[A,B](a : Map[A,B], b : Map[A,B])(implicit ev : Monoid[B]) : Map[A,B] = {
     lazy val asbs = a.toVector ++ b.toVector // vector of (key,value) pairs
     lazy val kvs = 
@@ -147,9 +161,11 @@ object Trie {
     // but I'm on a plane without free internet
     }
 
-  // We can use addMap to combine the children of two nodes
-  // then recursively use the Monoid instance
-  // to combine the tries at the next level
+  /** 
+   * We can use addMap to combine the children of two nodes
+   * then recursively use the Monoid instance
+   * to combine the tries at the next level
+   */
   implicit object TrieMonoidInstance extends Monoid[Trie] {
     def zero : Trie = EmptyTrie
     def plus(a : Trie, b : Trie) : Trie = 

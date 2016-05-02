@@ -21,9 +21,11 @@ import scala.collection.immutable.BitSet
 
 case class BloomFilter(numHashFunctions : Int, numBuckets : Int) {
 
-  // this idea of defining multiple hash functions by
-  // starting with s.hashCode and bitwise xor-ing
-  // comes from Spiewak  
+  /** 
+   * this idea of defining multiple hash functions by
+   * starting with s.hashCode and bitwise XOR-ing
+   * comes from Spiewak  
+   */
   def hash(s : String, index : Int, width : Int) : Int = {
     Math.abs(
       if (index == 0) s.hashCode
@@ -31,18 +33,22 @@ case class BloomFilter(numHashFunctions : Int, numBuckets : Int) {
       ) % width
   }
   
-  // BitSets are a monoid under bitwise OR (*not* XOR)
-  // a BitSet is a set of bits (corresponding to the nonzero digits of a binary number),
-  // adding an element to a set that already contains it leaves the set unchanged.
-  // In math terms: BitSet addition / bitwise OR is idempotent.
+  /** 
+   * BitSets are a monoid under bitwise OR (they are under XOR, too, but that's not what we're doing)
+   * a BitSet is a set of bits (corresponding to the nonzero digits of a binary number),
+   * adding an element to a set that already contains it leaves the set unchanged.
+   * In math terms: BitSet addition / bitwise OR is idempotent.
+   */
   def plus(a1 : BitSet, a2 : BitSet) : BitSet = {
-    a2.foldLeft(a1){case (accum, elem) => accum + elem}
     // add all the nonzero bits of a2 to a1, any that are already there, remain.
+    a2.foldLeft(a1){case (accum, elem) => accum + elem}
   }
   
   val zero : BitSet = BitSet()
   
-  // The essential methods
+  /** 
+   * The essential methods
+   */
   def create(item : String) : BitSet = {
     val hashValues = (0 to numHashFunctions - 1).map{case index => BitSet(hash(item, index, numBuckets))}
     hashValues.foldLeft(zero)(plus)
@@ -56,9 +62,11 @@ case class BloomFilter(numHashFunctions : Int, numBuckets : Int) {
     plus(create(item), bf)
   }
   
-  // Checking that all the bits to which item hashes are set to 1
-  // is equivalent to inserting it (setting them to 1 if they aren't already)
-  // and seeing if anything changed.
+  /**
+   * Checking that all the bits to which item hashes are set to 1
+   * is equivalent to inserting it (setting them to 1 if they aren't already)
+   * and seeing if anything changed.
+   */
   def contains(item : String, bf : BitSet) : Boolean = {
     insert(item, bf) == bf
   }
